@@ -223,12 +223,12 @@ func (c *UserCache) GetOrFetch(userID int) (User, error) {
 }
 ```
 
-## 🏆 Performance
+## 🏆 Performance & Benchmarks
 
 Collection is designed for performance with minimal allocations:
 
 - **Memory Efficient**: Reuses slices where possible, minimal allocations
-- **CPU Optimized**: Efficient algorithms with O(n) complexity for most operations  
+- **CPU Optimized**: Efficient algorithms with O(n) complexity for most operations
 - **Concurrent Safe**: Lock-free operations where possible in SyncMap
 
 ## 🤝 Contributing
