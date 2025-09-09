@@ -137,3 +137,159 @@ func TestSyncMapCompareAndSwap(t *testing.T) {
 		t.Errorf("CompareAndDelete(%v) failed to delete value", 2)
 	}
 }
+
+func TestMapFirst(t *testing.T) {
+	cases := []struct {
+		name      string
+		source    map[string]int
+		predicate func(string, int) bool
+		want      collection.KV[string, int]
+	}{
+		{
+			"Found matching element",
+			map[string]int{"a": 1, "b": 2, "c": 3},
+			func(k string, v int) bool { return v%2 == 0 },
+			collection.KV[string, int]{Key: "b", Value: 2},
+		},
+		{
+			"No matching element",
+			map[string]int{"a": 1, "b": 3, "c": 5},
+			func(k string, v int) bool { return v%2 == 0 },
+			collection.KV[string, int]{},
+		},
+		{
+			"Empty map",
+			map[string]int{},
+			func(k string, v int) bool { return v > 0 },
+			collection.KV[string, int]{},
+		},
+		{
+			"Key-based predicate",
+			map[string]int{"apple": 1, "banana": 2, "cherry": 3},
+			func(k string, v int) bool { return k == "banana" },
+			collection.KV[string, int]{Key: "banana", Value: 2},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := collection.MapFirst(tc.source, tc.predicate)
+
+			if got != tc.want {
+				t.Errorf("MapFirst(%v, predicate) = %v; want %v", tc.source, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMapTryFirst(t *testing.T) {
+	cases := []struct {
+		name      string
+		source    map[string]int
+		predicate func(string, int) bool
+		want      collection.KV[string, int]
+		wantOk    bool
+	}{
+		{
+			"Found matching element",
+			map[string]int{"a": 1, "b": 2, "c": 3},
+			func(k string, v int) bool { return v%2 == 0 },
+			collection.KV[string, int]{Key: "b", Value: 2},
+			true,
+		},
+		{
+			"No matching element",
+			map[string]int{"a": 1, "b": 3, "c": 5},
+			func(k string, v int) bool { return v%2 == 0 },
+			collection.KV[string, int]{},
+			false,
+		},
+		{
+			"Empty map",
+			map[string]int{},
+			func(k string, v int) bool { return v > 0 },
+			collection.KV[string, int]{},
+			false,
+		},
+		{
+			"Key-based predicate",
+			map[string]int{"apple": 1, "banana": 2, "cherry": 3},
+			func(k string, v int) bool { return k == "banana" },
+			collection.KV[string, int]{Key: "banana", Value: 2},
+			true,
+		},
+		{
+			"Multiple matches returns first",
+			map[string]int{"a": 2, "b": 4, "c": 6},
+			func(k string, v int) bool { return v%2 == 0 },
+			collection.KV[string, int]{Key: "a", Value: 2},
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, gotOk := collection.MapTryFirst(tc.source, tc.predicate)
+
+			if got != tc.want || gotOk != tc.wantOk {
+				t.Errorf("MapTryFirst(%v, predicate) = (%v, %v); want (%v, %v)", tc.source, got, gotOk, tc.want, tc.wantOk)
+			}
+		})
+	}
+}
+
+func TestMapAny(t *testing.T) {
+	cases := []struct {
+		name      string
+		source    map[string]int
+		predicate func(string, int) bool
+		want      bool
+	}{
+		{
+			"At least one even value",
+			map[string]int{"a": 1, "b": 2, "c": 3},
+			func(k string, v int) bool { return v%2 == 0 },
+			true,
+		},
+		{
+			"No even values",
+			map[string]int{"a": 1, "b": 3, "c": 5},
+			func(k string, v int) bool { return v%2 == 0 },
+			false,
+		},
+		{
+			"Empty map",
+			map[string]int{},
+			func(k string, v int) bool { return v > 0 },
+			false,
+		},
+		{
+			"Key-based predicate match",
+			map[string]int{"apple": 1, "banana": 2, "cherry": 3},
+			func(k string, v int) bool { return k == "banana" },
+			true,
+		},
+		{
+			"Key-based predicate no match",
+			map[string]int{"apple": 1, "banana": 2, "cherry": 3},
+			func(k string, v int) bool { return k == "orange" },
+			false,
+		},
+		{
+			"All elements match",
+			map[string]int{"a": 2, "b": 4, "c": 6},
+			func(k string, v int) bool { return v%2 == 0 },
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := collection.MapAny(tc.source, tc.predicate)
+
+			if got != tc.want {
+				t.Errorf("MapAny(%v, predicate) = %v; want %v", tc.source, got, tc.want)
+			}
+		})
+	}
+}
